@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Menu</title>
+<style>
+  :root{--bg:#000;--card:#1c1c1c;--line:#2a2a2a;--text:#f4f4f4;--muted:#b0b0b0;--accent:#f2a71b;--ink:#1a1a1a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:var(--bg);scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{background:var(--bg);color:var(--text);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh;-webkit-text-size-adjust:100%}
+  .wrap{max-width:960px;margin:0 auto;padding:0 18px}
+
+  header.top{padding:30px 0 4px}
+  .brand{display:flex;gap:16px;align-items:stretch}
+  .bar{width:6px;border-radius:3px;background:var(--accent);flex:none}
+  h1{font-size:clamp(26px,7vw,40px);line-height:1.1;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+  .tagline{color:var(--muted);margin-top:8px;font-size:15px}
+
+  nav.chips{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-top:20px}
+  nav.chips .scroll{display:flex;gap:10px;overflow-x:auto;padding:12px 18px;max-width:960px;margin:0 auto;scrollbar-width:none}
+  nav.chips .scroll::-webkit-scrollbar{display:none}
+  .chip{flex:none;color:var(--text);text-decoration:none;border:1px solid #3a3a3a;border-radius:999px;padding:9px 16px;font-size:16px;font-weight:600;white-space:nowrap}
+  .chip:hover,.chip:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+
+  section.cat{padding-top:32px;scroll-margin-top:64px}
+  section.cat h2{font-size:22px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:18px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+  .card{background:var(--card);border-radius:10px;overflow:hidden}
+  .card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#111}
+  .card .body{padding:16px 18px 20px}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .name{font-size:20px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+  .pill{background:var(--accent);color:var(--ink);font-weight:800;font-size:18px;padding:6px 14px;border-radius:999px;white-space:nowrap}
+  .desc{color:var(--muted);font-size:16px;margin-top:8px}
+  .allerg{color:#9a9a9a;font-size:14px;margin-top:8px}
+
+  .list .item{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .list .item:first-child{border-top:1px solid var(--line)}
+  .list .price{color:var(--accent);font-weight:800;font-size:20px;white-space:nowrap}
+
+  .soldout{opacity:.45}
+  .tag{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:var(--ink);background:#bdbdbd;border-radius:6px;padding:1px 7px;text-transform:none;letter-spacing:0;vertical-align:middle}
+
+  .msg{padding:90px 0;text-align:center;color:var(--muted)}
+  .msg h2{color:var(--text);margin-bottom:8px;font-size:22px}
+  footer.wrap{padding-top:44px;padding-bottom:52px;color:#777;font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top" id="head" hidden>
+    <div class="brand"><span class="bar"></span>
+      <div><h1 id="rname"></h1><p class="tagline" id="rtag"></p></div>
+    </div>
+  </header>
+</div>
+<nav class="chips" id="chips" hidden><div class="scroll" id="chipList"></div></nav>
+<main class="wrap" id="app"><p class="msg">Caricamento del menu…</p></main>
+<footer class="wrap" id="foot" hidden>Prezzi in euro</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+const app = document.getElementById('app');
+
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = n => Number(n).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const bySort = (a, b) => a.sort_order - b.sort_order;
+
+function message(title, text){
+  app.innerHTML = `<div class="msg"><h2>${h(title)}</h2><p>${h(text)}</p></div>`;
+}
+
+function itemCard(it){
+  const img = it.image_url && /^https:\/\//.test(it.image_url)
+    ? `<img src="${h(it.image_url)}" alt="${h(it.name)}" loading="lazy">` : '';
+  return `<article class="card${it.available ? '' : ' soldout'}">
+    ${img}
+    <div class="body">
+      <div class="row"><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
+        <span class="pill">${eur(it.price)}</span></div>
+      ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
+      ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}
+    </div></article>`;
+}
+
+function itemRow(it){
+  return `<div class="item${it.available ? '' : ' soldout'}">
+    <div><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
+      ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
+      ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}</div>
+    <span class="price">${eur(it.price)}</span></div>`;
+}
+
+function render(r){
+  document.title = r.name;
+  document.getElementById('rname').textContent = r.name;
+  document.getElementById('rtag').textContent = r.tagline || '';
+  const cats = (r.categories || []).slice().sort(bySort)
+    .map(c => ({...c, items: (c.items || []).slice().sort(bySort)}))
+    .filter(c => c.items.length);
+
+  if(!cats.length){ message('Menu in aggiornamento', 'Torna a controllare tra poco.'); }
+  else {
+    app.innerHTML = cats.map(c => `<section class="cat" id="cat-${h(c.id)}">
+      <h2>${h(c.name)}</h2>
+      ${c.layout === 'cards'
+        ? `<div class="grid">${c.items.map(itemCard).join('')}</div>`
+        : `<div class="list">${c.items.map(itemRow).join('')}</div>`}
+    </section>`).join('');
+    document.getElementById('chipList').innerHTML =
+      cats.map(c => `<a class="chip" href="#cat-${h(c.id)}">${h(c.name)}</a>`).join('');
+    document.getElementById('chips').hidden = cats.length < 2;
+  }
+  document.getElementById('head').hidden = false;
+  document.getElementById('foot').hidden = false;
+}
+
+(async function load(){
+  const slug = new URLSearchParams(location.search).get('r');
+  if(!slug){ message('Link non valido', 'Apri il menu dal link della tessera o dal QR code.'); return; }
+  const { data, error } = await db.from('restaurants')
+    .select('id,name,tagline,categories(id,name,layout,sort_order,items(id,name,description,price,allergens,image_url,available,sort_order))')
+    .eq('slug', slug).maybeSingle();
+  if(error){ message('Menu non disponibile', 'Riprova tra qualche istante.'); return; }
+  if(!data){ message('Menu non trovato', 'Controlla il link e riprova.'); return; }
+  render(data);
+})();
+</script>
+</body>
+</html>
