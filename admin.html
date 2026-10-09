@@ -103,7 +103,14 @@ function renderLogin(){
     e.preventDefault();
     $('loginErr').textContent = '';
     const { data, error } = await db.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
-    if(error){ $('loginErr').textContent = 'Email o password non corrette.'; return; }
+    if(error){
+      const m = (error.message || '').toLowerCase();
+      $('loginErr').textContent =
+        m.includes('invalid login') ? 'Email o password non corrette.' :
+        m.includes('not confirmed') ? 'Email non ancora confermata. Chiedi a chi gestisce il servizio di confermarla.' :
+        'Accesso non riuscito: ' + error.message;
+      return;
+    }
     state.user = data.user;
     start();
   };
