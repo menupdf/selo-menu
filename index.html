@@ -40,6 +40,14 @@
   .desc{color:var(--muted);font-size:16px;margin-top:8px}
   .card .desc{font-size:14px;line-height:1.4;margin-top:8px}
   .allerg{color:#9a9a9a;font-size:14px;margin-top:8px}
+  .card .prices{align-self:stretch}
+  .pr{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+  .pr:first-child{margin-top:0}
+  .plabel{color:var(--muted);font-size:13px;font-weight:600}
+  .pill.alt{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+  .pnote{display:block;color:#9a9a9a;font-size:12.5px;margin-top:8px}
+  .rprices div{display:flex;justify-content:flex-end;align-items:baseline;gap:10px}
+  .rprices small{color:var(--muted);font-size:13px;font-weight:600}
   .card .allerg{font-size:12.5px}
   @media (min-width:760px){
     .grid{grid-template-columns:repeat(3,1fr);gap:18px}
@@ -88,6 +96,25 @@ function message(title, text){
   app.innerHTML = `<div class="msg"><h2>${h(title)}</h2><p>${h(text)}</p></div>`;
 }
 
+const hasMenu = it => it.menu_price !== null && it.menu_price !== undefined;
+
+function priceBlock(it){
+  if(!hasMenu(it)) return `<span class="pill">${eur(it.price)}</span>`;
+  return `<div class="prices">
+    <div class="pr"><span class="plabel">${h(CONFIG.LABEL_SINGLE || 'Solo piatto')}</span><span class="pill">${eur(it.price)}</span></div>
+    <div class="pr"><span class="plabel">${h(CONFIG.LABEL_MENU || 'Menu')}</span><span class="pill alt">${eur(it.menu_price)}</span></div>
+    ${CONFIG.MENU_NOTE ? `<span class="pnote">${h(CONFIG.MENU_NOTE)}</span>` : ''}
+  </div>`;
+}
+
+function rowPrice(it){
+  if(!hasMenu(it)) return `<span class="price">${eur(it.price)}</span>`;
+  return `<div class="rprices">
+    <div><small>${h(CONFIG.LABEL_SINGLE || 'Solo piatto')}</small><span class="price">${eur(it.price)}</span></div>
+    <div><small>${h(CONFIG.LABEL_MENU || 'Menu')}</small><span class="price">${eur(it.menu_price)}</span></div>
+  </div>`;
+}
+
 function itemCard(it){
   const img = it.image_url && /^https:\/\//.test(it.image_url)
     ? `<img src="${h(it.image_url)}" alt="${h(it.name)}" loading="lazy">` : '';
@@ -95,7 +122,7 @@ function itemCard(it){
     ${img}
     <div class="body">
       <div class="row"><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
-        <span class="pill">${eur(it.price)}</span></div>
+        ${priceBlock(it)}</div>
       ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
       ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}
     </div></article>`;
@@ -106,7 +133,7 @@ function itemRow(it){
     <div><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
       ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
       ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}</div>
-    <span class="price">${eur(it.price)}</span></div>`;
+    ${rowPrice(it)}</div>`;
 }
 
 function render(r){
@@ -137,7 +164,7 @@ function render(r){
   const slug = new URLSearchParams(location.search).get('r');
   if(!slug){ message('Link non valido', 'Apri il menu dal link della tessera o dal QR code.'); return; }
   const { data, error } = await db.from('restaurants')
-    .select('id,name,tagline,categories(id,name,layout,sort_order,items(id,name,description,price,allergens,image_url,available,sort_order))')
+    .select('id,name,tagline,categories(id,name,layout,sort_order,items(id,name,description,price,menu_price,allergens,image_url,available,sort_order))')
     .eq('slug', slug).maybeSingle();
   if(error){ message('Menu non disponibile', 'Riprova tra qualche istante.'); return; }
   if(!data){ message('Menu non trovato', 'Controlla il link e riprova.'); return; }

@@ -44,8 +44,7 @@
   .photo-row{display:flex;gap:14px;align-items:center}
   .thumb{width:104px;height:78px;border-radius:8px;object-fit:cover;background:#0b0b0b;border:1px dashed #3a3a3a;flex:none;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center}
   .photo-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-  .two{display:grid;grid-template-columns:1fr;gap:0}
-  @media (min-width:560px){.two{grid-template-columns:140px 1fr;gap:12px}}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .item-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
   .check{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;min-height:46px}
   .check input{width:24px;height:24px;min-height:24px;margin:0;accent-color:var(--accent)}
@@ -124,11 +123,12 @@ function fatal(title, text){
 /* ---------- Caricamento dati ---------- */
 async function start(){
   app.innerHTML = '<p class="muted center">Caricamento…</p>';
-  const { data, error } = await db.from('restaurants').select('*').eq('owner_id', state.user.id).order('name');
+  const { data, error } = await db.from('restaurant_owners').select('restaurants(*)').eq('user_id', state.user.id);
   if(error) return fatal('Impossibile caricare i dati', error.message);
-  state.restaurants = data;
-  if(!data.length) return fatal('Nessun locale collegato a questo account', 'Chiedi a chi gestisce il servizio di collegare il tuo locale.');
-  await selectRestaurant(data[0].id);
+  const list = data.map(x => x.restaurants).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  state.restaurants = list;
+  if(!list.length) return fatal('Nessun locale collegato a questo account', 'Chiedi a chi gestisce il servizio di collegare il tuo locale.');
+  await selectRestaurant(list[0].id);
 }
 
 async function selectRestaurant(id){
@@ -152,9 +152,10 @@ function itemHtml(it, c, i, n){
     <label class="field">Nome del piatto<input data-field="name" value="${h(it.name)}" maxlength="80"></label>
     <label class="field">Descrizione<textarea data-field="description" rows="3" maxlength="300">${h(it.description)}</textarea></label>
     <div class="two">
-      <label class="field">Prezzo (€)<input data-field="price" inputmode="decimal" value="${fmtInput(it.price)}"></label>
-      <label class="field">Allergeni<input data-field="allergens" value="${h(it.allergens)}" placeholder="es. glutine, latte" maxlength="120"></label>
+      <label class="field">Prezzo solo piatto (€)<input data-field="price" inputmode="decimal" value="${fmtInput(it.price)}"></label>
+      <label class="field">Prezzo menu (€)<input data-field="menu_price" inputmode="decimal" placeholder="vuoto = nessun menu" value="${it.menu_price == null ? '' : fmtInput(it.menu_price)}"></label>
     </div>
+    <label class="field">Allergeni<input data-field="allergens" value="${h(it.allergens)}" placeholder="es. glutine, latte" maxlength="120"></label>
     <div class="item-foot">
       <label class="check"><input type="checkbox" data-field="available" ${it.available ? 'checked' : ''}> Disponibile</label>
       <div class="foot-actions">
@@ -277,11 +278,15 @@ async function saveItem(t){
   const id = t.closest('[data-item]').dataset.item, { it } = findItem(id), f = t.dataset.field;
   let v = t.type === 'checkbox' ? t.checked : t.value.trim();
   if(f === 'name' && !v){ toast('Il nome del piatto non può essere vuoto', true); t.value = it.name; return; }
-  if(f === 'price'){
-    const n = parseFloat(String(v).replace(',', '.'));
-    if(!isFinite(n) || n < 0 || n >= 1e6){ toast('Inserisci un prezzo valido, ad esempio 6,50', true); t.value = fmtInput(it.price); return; }
-    v = Math.round(n * 100) / 100;
-    t.value = fmtInput(v);
+  if(f === 'price' || f === 'menu_price'){
+    if(f === 'menu_price' && v === ''){
+      v = null;
+    } else {
+      const n = parseFloat(String(v).replace(',', '.'));
+      if(!isFinite(n) || n < 0 || n >= 1e6){ toast('Inserisci un prezzo valido, ad esempio 6,50', true); t.value = it[f] == null ? '' : fmtInput(it[f]); return; }
+      v = Math.round(n * 100) / 100;
+      t.value = fmtInput(v);
+    }
   }
   if(await save('items', id, { [f]: v })){
     it[f] = v;
