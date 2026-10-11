@@ -37,6 +37,16 @@
   .btn:disabled{opacity:.3;cursor:default}
   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 
+  details.panel{padding:0}
+  details.panel > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:60px;padding:12px 18px}
+  details.panel > summary::-webkit-details-marker{display:none}
+  details.panel > summary:hover .cat-title{color:var(--accent)}
+  .cat-title{font-size:18px;font-weight:800;overflow-wrap:anywhere}
+  .cat-count{color:var(--muted);font-size:14px;white-space:nowrap}
+  .chev{margin-left:auto;flex:none;width:10px;height:10px;margin-right:6px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(45deg);transition:transform .15s}
+  details[open] > summary .chev{transform:rotate(-135deg)}
+  @media (prefers-reduced-motion:reduce){.chev{transition:none}}
+  .cat-body{padding:0 18px 18px;border-top:1px solid var(--line)}
   .cat-head{display:grid;grid-template-columns:1fr;gap:0}
   @media (min-width:560px){.cat-head{grid-template-columns:1fr 220px;gap:12px}}
   .item-card{background:var(--card);border-radius:10px;padding:16px;margin-top:16px}
@@ -72,7 +82,7 @@ const db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 const BUCKET = CONFIG.BUCKET || 'menu-images';
 const app = document.getElementById('app');
 const $ = id => document.getElementById(id);
-const state = { user: null, restaurants: [], rest: null, cats: [] };
+const state = { user: null, restaurants: [], rest: null, cats: [], open: new Set() };
 
 const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtInput = n => Number(n).toFixed(2).replace('.', ',');
@@ -136,6 +146,7 @@ async function selectRestaurant(id){
   const { data, error } = await db.from('categories').select('*, items(*)').eq('restaurant_id', id);
   if(error) return fatal('Impossibile caricare il menu', error.message);
   state.cats = data.sort(bySort).map(c => ({...c, items: (c.items || []).sort(bySort)}));
+  state.open = new Set();
   renderEditor();
 }
 
@@ -167,7 +178,10 @@ function itemHtml(it, c, i, n){
 }
 
 function catHtml(c, ci){
-  return `<section class="panel" data-cat="${c.id}">
+  const n = c.items.length;
+  return `<details class="panel" data-cat="${c.id}"${state.open.has(c.id) ? ' open' : ''}>
+    <summary><span class="cat-title">${h(c.name)}</span><span class="cat-count">${n} ${n === 1 ? 'piatto' : 'piatti'}</span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="cat-body">
     <div class="cat-head">
       <label class="field">Nome della categoria<input data-cfield="name" value="${h(c.name)}" maxlength="60"></label>
       <label class="field">Aspetto
@@ -183,7 +197,8 @@ function catHtml(c, ci){
     </div>
     ${c.items.map((it, i) => itemHtml(it, c, i, c.items.length)).join('')}
     <div class="actions"><button class="btn primary" data-act="item-add">Aggiungi piatto</button></div>
-  </section>`;
+    </div>
+  </details>`;
 }
 
 function renderEditor(){
@@ -271,7 +286,11 @@ async function saveRest(t){
 async function saveCat(t){
   const id = t.closest('[data-cat]').dataset.cat, c = findCat(id), f = t.dataset.cfield, v = t.value.trim();
   if(f === 'name' && !v){ toast('Il nome della categoria non può essere vuoto', true); t.value = c.name; return; }
-  if(await save('categories', id, { [f]: v })){ c[f] = v; if(f === 'layout') renderEditor(); }
+  if(await save('categories', id, { [f]: v })){
+    c[f] = v;
+    if(f === 'layout') renderEditor();
+    if(f === 'name') t.closest('details').querySelector('.cat-title').textContent = v;
+  }
 }
 
 async function saveItem(t){
@@ -336,6 +355,7 @@ async function act(name, btn){
     }).select().single();
     if(error) return toast('Non aggiunta: ' + error.message, true);
     state.cats.push({ ...data, items: [] });
+    state.open.add(data.id);
     renderEditor();
     toast('Categoria aggiunta');
     return;
@@ -402,6 +422,13 @@ app.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if(b) act(b.dataset.act, b);
 });
+
+app.addEventListener('toggle', e => {
+  const d = e.target;
+  if(d.tagName === 'DETAILS' && d.dataset.cat){
+    if(d.open) state.open.add(d.dataset.cat); else state.open.delete(d.dataset.cat);
+  }
+}, true);
 
 app.addEventListener('change', e => {
   const t = e.target;
