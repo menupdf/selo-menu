@@ -50,8 +50,18 @@
   .cat-body{padding:0 18px 18px;border-top:1px solid var(--line)}
   .cat-head{display:grid;grid-template-columns:1fr;gap:0}
   @media (min-width:560px){.cat-head{grid-template-columns:1fr 220px;gap:12px}}
-  .item-card{background:var(--card);border-radius:10px;padding:16px;margin-top:16px}
-  .item-card.off{opacity:.75}
+  details.item-card{background:var(--card);border-radius:10px;margin-top:12px}
+  details.item-card.off{opacity:.75}
+  details.item-card > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 14px}
+  details.item-card > summary::-webkit-details-marker{display:none}
+  details.item-card > summary:hover .item-name{color:var(--accent)}
+  .sthumb{width:72px;height:54px;flex:none;border-radius:8px;object-fit:cover;background:var(--input-bg);border:1px dashed var(--btn-border)}
+  img.sthumb{border:0}
+  .item-name{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+  .tag-off{display:none;flex:none;font-size:12px;font-weight:700;color:var(--bad);border:1px solid var(--danger-border);border-radius:6px;padding:1px 7px}
+  details.item-card.off .tag-off{display:inline-block}
+  .item-body{padding:0 16px 16px;border-top:1px solid var(--line)}
+  .item-body .photo-row{margin-top:14px}
   .photo-row{display:flex;gap:14px;align-items:center}
   .thumb{width:104px;height:78px;border-radius:8px;object-fit:cover;background:var(--input-bg);border:1px dashed var(--btn-border);flex:none;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center}
   .photo-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
@@ -86,7 +96,7 @@ const db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 const BUCKET = CONFIG.BUCKET || 'menu-images';
 const app = document.getElementById('app');
 const $ = id => document.getElementById(id);
-const state = { user: null, restaurants: [], rest: null, cats: [], open: new Set() };
+const state = { user: null, restaurants: [], rest: null, cats: [], open: new Set(), openItems: new Set() };
 
 const LOGOS = { dark: 'logo-tema-scuro.png', light: 'logo-tema-chiaro.png' };
 let theme = 'dark';
@@ -165,6 +175,7 @@ async function selectRestaurant(id){
   if(error) return fatal('Impossibile caricare il menu', error.message);
   state.cats = data.sort(bySort).map(c => ({...c, items: (c.items || []).sort(bySort)}));
   state.open = new Set();
+  state.openItems = new Set();
   applyTheme(state.rest.theme);
   renderEditor();
 }
@@ -177,7 +188,11 @@ function itemHtml(it, c, i, n){
         <label class="btn sm">${it.image_url ? 'Cambia foto' : 'Carica foto'}<input type="file" accept="image/*" data-photo hidden></label>
         ${it.image_url ? '<button class="btn sm danger" data-act="photo-del">Rimuovi foto</button>' : ''}
       </div></div>` : '';
-  return `<article class="item-card${it.available ? '' : ' off'}" data-item="${it.id}">
+  const sthumb = c.layout === 'cards'
+    ? (it.image_url ? `<img class="sthumb" src="${h(it.image_url)}" alt="">` : '<span class="sthumb"></span>') : '';
+  return `<details class="item-card${it.available ? '' : ' off'}" data-item="${it.id}"${state.openItems.has(it.id) ? ' open' : ''}>
+    <summary>${sthumb}<span class="item-name">${h(it.name)}</span><span class="tag-off">Esaurito</span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="item-body">
     ${photo}
     <label class="field">Nome del piatto<input data-field="name" value="${h(it.name)}" maxlength="80"></label>
     <label class="field">Descrizione<textarea data-field="description" rows="3" maxlength="300">${h(it.description)}</textarea></label>
@@ -193,7 +208,8 @@ function itemHtml(it, c, i, n){
         <button class="btn sm" data-act="item-down" aria-label="Sposta giù" ${i === n - 1 ? 'disabled' : ''}>▼</button>
         <button class="btn sm danger" data-act="item-del">Elimina</button>
       </div>
-    </div></article>`;
+    </div>
+    </div></details>`;
 }
 
 function catHtml(c, ci){
@@ -340,6 +356,7 @@ async function saveItem(t){
   }
   if(await save('items', id, { [f]: v })){
     it[f] = v;
+    if(f === 'name') t.closest('details').querySelector('.item-name').textContent = v;
     if(f === 'available') t.closest('.item-card').classList.toggle('off', !v);
   }
 }
@@ -417,6 +434,7 @@ async function act(name, btn){
     }).select().single();
     if(error) return toast('Non aggiunto: ' + error.message, true);
     c.items.push(data);
+    state.openItems.add(data.id);
     renderEditor();
     const el = document.querySelector('[data-item="' + data.id + '"] [data-field="name"]');
     if(el){ el.scrollIntoView({ block: 'center' }); el.focus(); el.select(); }
@@ -456,8 +474,12 @@ app.addEventListener('click', e => {
 
 app.addEventListener('toggle', e => {
   const d = e.target;
-  if(d.tagName === 'DETAILS' && d.dataset.cat){
+  if(d.tagName !== 'DETAILS') return;
+  if(d.dataset.cat){
     if(d.open) state.open.add(d.dataset.cat); else state.open.delete(d.dataset.cat);
+  }
+  if(d.dataset.item){
+    if(d.open) state.openItems.add(d.dataset.item); else state.openItems.delete(d.dataset.item);
   }
 }, true);
 
