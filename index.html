@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000000">
 <title>Menu</title>
 <style>
-  :root{--bg:#000;--card:#1c1c1c;--line:#2a2a2a;--text:#f4f4f4;--muted:#b0b0b0;--accent:#f2a71b;--ink:#1a1a1a}
+  :root{color-scheme:dark;--bg:#000;--card:#1c1c1c;--card-border:transparent;--line:#2a2a2a;--text:#f4f4f4;--muted:#b0b0b0;--faint:#9a9a9a;--accent:#f2a71b;--on-accent:#1a1a1a;--chip-border:#3a3a3a;--img-bg:#111;--tag-bg:#bdbdbd;--tag-fg:#1a1a1a}
+  :root[data-theme="light"]{color-scheme:light;--bg:#faf8f3;--card:#ffffff;--card-border:#e6dfd1;--line:#e3ddd0;--text:#1d2a2c;--muted:#56646a;--faint:#66737a;--accent:#b4570f;--on-accent:#ffffff;--chip-border:#cfc7b6;--img-bg:#ece7db;--tag-bg:#e2dccf;--tag-fg:#3b4549}
   *{box-sizing:border-box;margin:0;padding:0}
   html{background:var(--bg);scroll-behavior:smooth}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -22,30 +23,30 @@
   nav.chips{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-top:20px}
   nav.chips .scroll{display:flex;gap:10px;overflow-x:auto;padding:12px 18px;max-width:960px;margin:0 auto;scrollbar-width:none}
   nav.chips .scroll::-webkit-scrollbar{display:none}
-  .chip{flex:none;color:var(--text);text-decoration:none;border:1px solid #3a3a3a;border-radius:999px;padding:9px 16px;font-size:16px;font-weight:600;white-space:nowrap}
+  .chip{flex:none;color:var(--text);text-decoration:none;border:1px solid var(--chip-border);border-radius:999px;padding:9px 16px;font-size:16px;font-weight:600;white-space:nowrap}
   .chip:hover,.chip:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
 
   section.cat{padding-top:32px;scroll-margin-top:64px}
   section.cat h2{font-size:22px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:18px}
 
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-  .card{background:var(--card);border-radius:10px;overflow:hidden}
-  .card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#111}
+  .card{background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--card-border)}
+  .card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--img-bg)}
   .card .body{padding:12px 12px 16px}
   .card .row{flex-direction:column;align-items:flex-start;gap:8px}
   .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   .name{font-size:20px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
   .card .name{font-size:16px;letter-spacing:.2px;overflow-wrap:anywhere}
-  .pill{background:var(--accent);color:var(--ink);font-weight:800;font-size:16px;padding:5px 12px;border-radius:999px;white-space:nowrap}
+  .pill{background:var(--accent);color:var(--on-accent);font-weight:800;font-size:16px;padding:5px 12px;border-radius:999px;white-space:nowrap}
   .desc{color:var(--muted);font-size:16px;margin-top:8px}
   .card .desc{font-size:14px;line-height:1.4;margin-top:8px}
-  .allerg{color:#9a9a9a;font-size:14px;margin-top:8px}
+  .allerg{color:var(--faint);font-size:14px;margin-top:8px}
   .card .prices{align-self:stretch}
   .pr{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
   .pr:first-child{margin-top:0}
   .plabel{color:var(--muted);font-size:13px;font-weight:600}
   .pill.alt{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
-  .pnote{display:block;color:#9a9a9a;font-size:12.5px;margin-top:8px}
+  .pnote{display:block;color:var(--faint);font-size:12.5px;margin-top:8px}
   .rprices div{display:flex;justify-content:flex-end;align-items:baseline;gap:10px}
   .rprices small{color:var(--muted);font-size:13px;font-weight:600}
   .card .allerg{font-size:12.5px}
@@ -62,16 +63,20 @@
   .list .price{color:var(--accent);font-weight:800;font-size:20px;white-space:nowrap}
 
   .soldout{opacity:.45}
-  .tag{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:var(--ink);background:#bdbdbd;border-radius:6px;padding:1px 7px;text-transform:none;letter-spacing:0;vertical-align:middle}
+  .tag{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:var(--tag-fg);background:var(--tag-bg);border-radius:6px;padding:1px 7px;text-transform:none;letter-spacing:0;vertical-align:middle}
 
   .card .tag{display:table;margin:6px 0 0}
   .msg{padding:90px 0;text-align:center;color:var(--muted)}
   .msg h2{color:var(--text);margin-bottom:8px;font-size:22px}
-  footer.wrap{padding-top:44px;padding-bottom:52px;color:#777;font-size:14px;text-align:center}
+  footer.wrap{padding-bottom:56px}
+  .logo{display:block;width:auto;height:auto;max-height:104px;max-width:60%}
+  .logo-top{margin:26px auto 0}
+  .logo-bottom{margin:40px auto 0;max-height:88px}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <img class="logo logo-top" alt="CcMenù">
   <header class="top" id="head" hidden>
     <div class="brand"><span class="bar"></span>
       <div><h1 id="rname"></h1><p class="tagline" id="rtag"></p></div>
@@ -80,13 +85,23 @@
 </div>
 <nav class="chips" id="chips" hidden><div class="scroll" id="chipList"></div></nav>
 <main class="wrap" id="app"><p class="msg">Caricamento del menu…</p></main>
-<footer class="wrap" id="foot" hidden>Prezzi in euro</footer>
+<footer class="wrap" id="foot"><img class="logo logo-bottom" alt="CcMenù"></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script>
 const db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 const app = document.getElementById('app');
+
+const LOGOS = { dark: 'logo-tema-scuro.png', light: 'logo-tema-chiaro.png' };
+function applyTheme(t){
+  t = t === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('img.logo').forEach(i => { i.src = LOGOS[t]; });
+  const m = document.querySelector('meta[name="theme-color"]');
+  if(m) m.content = t === 'light' ? '#faf8f3' : '#000000';
+  return t;
+}
 
 const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur = n => Number(n).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
@@ -157,17 +172,25 @@ function render(r){
     document.getElementById('chips').hidden = cats.length < 2;
   }
   document.getElementById('head').hidden = false;
-  document.getElementById('foot').hidden = false;
 }
 
 (async function load(){
   const slug = new URLSearchParams(location.search).get('r');
+  // tema salvato l'ultima volta: evita il lampo scuro/chiaro all'apertura
+  let saved = null;
+  try{ saved = localStorage.getItem('theme:' + slug); }catch{}
+  applyTheme(saved);
   if(!slug){ message('Link non valido', 'Apri il menu dal link della tessera o dal QR code.'); return; }
-  const { data, error } = await db.from('restaurants')
-    .select('id,name,tagline,categories(id,name,layout,sort_order,items(id,name,description,price,menu_price,allergens,image_url,available,sort_order))')
+
+  const query = withTheme => db.from('restaurants')
+    .select('id,name,tagline,' + (withTheme ? 'theme,' : '') + 'categories(id,name,layout,sort_order,items(id,name,description,price,menu_price,allergens,image_url,available,sort_order))')
     .eq('slug', slug).maybeSingle();
+  let { data, error } = await query(true);
+  if(error && /theme/i.test(error.message || '')) ({ data, error } = await query(false));  // colonna tema non ancora creata
   if(error){ message('Menu non disponibile', 'Riprova tra qualche istante.'); return; }
   if(!data){ message('Menu non trovato', 'Controlla il link e riprova.'); return; }
+  const t = applyTheme(data.theme);
+  try{ localStorage.setItem('theme:' + slug, t); }catch{}
   render(data);
 })();
 </script>
