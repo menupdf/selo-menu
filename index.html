@@ -16,9 +16,9 @@
 
   header.top{padding:30px 0 4px}
   .brand{text-align:center}
-  h1{font-family:'Patrick Hand','Segoe Print','Bradley Hand',cursive;font-size:40px;line-height:1.15;font-weight:400;white-space:nowrap}
+  h1{font-family:'Patrick Hand','Segoe Print','Bradley Hand',cursive;font-size:48px;line-height:1.15;font-weight:400;white-space:nowrap}
   h1 .t1,h1 .t2{display:block}
-  h1 .t1{font-size:1.5em}
+  h1 .t1{font-size:2em}
   .brand h1::after{content:"";display:block;width:min(92%,480px);height:4px;border-radius:2px;background:var(--accent);margin:12px auto 0}
   .tagline{color:var(--muted);margin-top:12px;font-size:15px}
 
@@ -179,7 +179,7 @@ function fitTitle(){
   const el = document.getElementById('rname');
   if(!el || !el.offsetParent) return;
   const avail = el.clientWidth;
-  let size = 40;
+  let size = 48;
   el.style.fontSize = size + 'px';
   while(size > 14 && el.scrollWidth > avail){ size -= 1; el.style.fontSize = size + 'px'; }
 }
@@ -190,7 +190,7 @@ function watchTitle(){
   window.addEventListener('resize', fitTitle);
   if(document.fonts){
     document.fonts.addEventListener('loadingdone', fitTitle);
-    document.fonts.load("40px 'Patrick Hand'").then(fitTitle).catch(() => {});
+    document.fonts.load("48px 'Patrick Hand'").then(fitTitle).catch(() => {});
   }
 }
 
