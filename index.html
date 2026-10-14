@@ -72,7 +72,13 @@
   .msg h2{color:var(--text);margin-bottom:8px;font-size:22px}
   footer.wrap{padding-bottom:56px}
   .logo{display:block;width:auto;height:auto;max-height:104px;max-width:60%}
-  .logo-top{margin:26px auto 0}
+  .logo-top{margin:14px auto 0}
+  .lang{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:16px}
+  .lang-label{color:var(--muted);font-size:15px;font-weight:600;margin-right:2px}
+  .lang button{width:54px;height:38px;padding:0;border-radius:8px;border:2px solid var(--chip-border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .lang button svg{width:34px;height:22px;display:block;border-radius:2px}
+  .lang button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .lang button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .logo-bottom{margin:40px auto 0;max-height:88px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,6 +87,11 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="lang" role="group" aria-label="Lingua / Language">
+    <span class="lang-label" id="langLabel">Lingua</span>
+    <button type="button" data-lang="it" aria-label="Italiano" aria-pressed="true"><svg viewBox="0 0 3 2" preserveAspectRatio="none" aria-hidden="true"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#ffffff"/><rect x="2" width="1" height="2" fill="#ce2b37"/></svg></button>
+    <button type="button" data-lang="en" aria-label="English" aria-pressed="false"><svg viewBox="0 0 60 30" preserveAspectRatio="none" aria-hidden="true"><clipPath id="uj-s"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="uj-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#uj-s)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#ffffff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uj-t)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#ffffff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg></button>
+  </div>
   <img class="logo logo-top" alt="CcMenù">
   <header class="top" id="head" hidden>
     <div class="brand">
@@ -109,50 +120,97 @@ function applyTheme(t){
 }
 
 const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const eur = n => Number(n).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+// ---------- Lingua ----------
+const I18N = {
+  it: { lang:'Lingua', loading:'Caricamento del menu…', soldout:'Esaurito', allergens:'Allergeni',
+        bad_t:'Link non valido', bad_d:'Apri il menu dal link della tessera o dal QR code.',
+        err_t:'Menu non disponibile', err_d:'Riprova tra qualche istante.',
+        nf_t:'Menu non trovato', nf_d:'Controlla il link e riprova.',
+        upd_t:'Menu in aggiornamento', upd_d:'Torna a controllare tra poco.' },
+  en: { lang:'Language', loading:'Loading menu…', soldout:'Sold out', allergens:'Allergens',
+        bad_t:'Invalid link', bad_d:'Open the menu from the card link or the QR code.',
+        err_t:'Menu unavailable', err_d:'Please try again in a moment.',
+        nf_t:'Menu not found', nf_d:'Check the link and try again.',
+        upd_t:'Menu being updated', upd_d:'Please check back shortly.' }
+};
+let lang = 'it', view = 'loading', msgKey = null, current = null;
+const t = k => I18N[lang][k];
+// testo in inglese se c'e', altrimenti quello italiano
+const tr = (o, f) => (lang === 'en' && o[f + '_en']) ? o[f + '_en'] : o[f];
+const priceLabels = () => lang === 'en'
+  ? { single: CONFIG.LABEL_SINGLE_EN || 'Single', menu: CONFIG.LABEL_MENU_EN || 'Meal', note: CONFIG.MENU_NOTE_EN || '' }
+  : { single: CONFIG.LABEL_SINGLE || 'Solo piatto', menu: CONFIG.LABEL_MENU || 'Menu', note: CONFIG.MENU_NOTE || '' };
+const eur = n => {
+  const v = Number(n).toLocaleString(lang === 'en' ? 'en-GB' : 'it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return lang === 'en' ? '€' + v : v + ' €';
+};
 const bySort = (a, b) => a.sort_order - b.sort_order;
 
-function message(title, text){
-  app.innerHTML = `<div class="msg"><h2>${h(title)}</h2><p>${h(text)}</p></div>`;
+const msgHtml = key => `<div class="msg"><h2>${h(t(key + '_t'))}</h2><p>${h(t(key + '_d'))}</p></div>`;
+function message(key){ view = 'msg'; msgKey = key; app.innerHTML = msgHtml(key); }
+function refresh(){
+  if(view === 'menu' && current) render(current);
+  else if(view === 'msg') app.innerHTML = msgHtml(msgKey);
+  else app.innerHTML = `<p class="msg">${h(t('loading'))}</p>`;
 }
+function initialLang(){
+  try{ const s = localStorage.getItem('lang'); if(s === 'it' || s === 'en') return s; }catch{}
+  return (navigator.language || 'it').toLowerCase().startsWith('it') ? 'it' : 'en';
+}
+function setLang(l, persist){
+  lang = l === 'en' ? 'en' : 'it';
+  document.documentElement.lang = lang;
+  document.getElementById('langLabel').textContent = t('lang');
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  if(persist){ try{ localStorage.setItem('lang', lang); }catch{} }
+  refresh();
+}
+document.querySelector('.lang').addEventListener('click', e => {
+  const b = e.target.closest('button[data-lang]');
+  if(b) setLang(b.dataset.lang, true);
+});
 
 const hasMenu = it => it.menu_price !== null && it.menu_price !== undefined;
 
 function priceBlock(it){
   if(!hasMenu(it)) return `<span class="pill">${eur(it.price)}</span>`;
+  const L = priceLabels();
   return `<div class="prices">
-    <div class="pr"><span class="plabel">${h(CONFIG.LABEL_SINGLE || 'Solo piatto')}</span><span class="pill">${eur(it.price)}</span></div>
-    <div class="pr"><span class="plabel">${h(CONFIG.LABEL_MENU || 'Menu')}</span><span class="pill alt">${eur(it.menu_price)}</span></div>
-    ${CONFIG.MENU_NOTE ? `<span class="pnote">${h(CONFIG.MENU_NOTE)}</span>` : ''}
+    <div class="pr"><span class="plabel">${h(L.single)}</span><span class="pill">${eur(it.price)}</span></div>
+    <div class="pr"><span class="plabel">${h(L.menu)}</span><span class="pill alt">${eur(it.menu_price)}</span></div>
+    ${L.note ? `<span class="pnote">${h(L.note)}</span>` : ''}
   </div>`;
 }
 
 function rowPrice(it){
   if(!hasMenu(it)) return `<span class="price">${eur(it.price)}</span>`;
+  const L = priceLabels();
   return `<div class="rprices">
-    <div><small>${h(CONFIG.LABEL_SINGLE || 'Solo piatto')}</small><span class="price">${eur(it.price)}</span></div>
-    <div><small>${h(CONFIG.LABEL_MENU || 'Menu')}</small><span class="price">${eur(it.menu_price)}</span></div>
+    <div><small>${h(L.single)}</small><span class="price">${eur(it.price)}</span></div>
+    <div><small>${h(L.menu)}</small><span class="price">${eur(it.menu_price)}</span></div>
   </div>`;
 }
 
 function itemCard(it){
+  const name = tr(it, 'name'), desc = tr(it, 'description'), al = tr(it, 'allergens');
   const img = it.image_url && /^https:\/\//.test(it.image_url)
-    ? `<img src="${h(it.image_url)}" alt="${h(it.name)}" loading="lazy">` : '';
+    ? `<img src="${h(it.image_url)}" alt="${h(name)}" loading="lazy">` : '';
   return `<article class="card${it.available ? '' : ' soldout'}">
     ${img}
     <div class="body">
-      <div class="row"><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
+      <div class="row"><h3 class="name">${h(name)}${it.available ? '' : `<span class="tag">${h(t('soldout'))}</span>`}</h3>
         ${priceBlock(it)}</div>
-      ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
-      ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}
+      ${desc ? `<p class="desc">${h(desc)}</p>` : ''}
+      ${al ? `<p class="allerg">${h(t('allergens'))}: ${h(al)}</p>` : ''}
     </div></article>`;
 }
 
 function itemRow(it){
+  const name = tr(it, 'name'), desc = tr(it, 'description'), al = tr(it, 'allergens');
   return `<div class="item${it.available ? '' : ' soldout'}">
-    <div><h3 class="name">${h(it.name)}${it.available ? '' : '<span class="tag">Esaurito</span>'}</h3>
-      ${it.description ? `<p class="desc">${h(it.description)}</p>` : ''}
-      ${it.allergens ? `<p class="allerg">Allergeni: ${h(it.allergens)}</p>` : ''}</div>
+    <div><h3 class="name">${h(name)}${it.available ? '' : `<span class="tag">${h(t('soldout'))}</span>`}</h3>
+      ${desc ? `<p class="desc">${h(desc)}</p>` : ''}
+      ${al ? `<p class="allerg">${h(t('allergens'))}: ${h(al)}</p>` : ''}</div>
     ${rowPrice(it)}</div>`;
 }
 
@@ -195,23 +253,26 @@ function watchTitle(){
 }
 
 function render(r){
+  current = r; view = 'menu';
   document.title = r.name;
   setTitle(r.name);
-  document.getElementById('rtag').textContent = r.tagline || '';
+  document.getElementById('rtag').textContent = tr(r, 'tagline') || '';
   const cats = (r.categories || []).slice().sort(bySort)
     .map(c => ({...c, items: (c.items || []).slice().sort(bySort)}))
     .filter(c => c.items.length);
 
-  if(!cats.length){ message('Menu in aggiornamento', 'Torna a controllare tra poco.'); }
-  else {
+  if(!cats.length){
+    app.innerHTML = msgHtml('upd');
+    document.getElementById('chips').hidden = true;
+  } else {
     app.innerHTML = cats.map(c => `<section class="cat" id="cat-${h(c.id)}">
-      <h2>${h(c.name)}</h2>
+      <h2>${h(tr(c, 'name'))}</h2>
       ${c.layout === 'cards'
         ? `<div class="grid">${c.items.map(itemCard).join('')}</div>`
         : `<div class="list">${c.items.map(itemRow).join('')}</div>`}
     </section>`).join('');
     document.getElementById('chipList').innerHTML =
-      cats.map(c => `<a class="chip" href="#cat-${h(c.id)}">${h(c.name)}</a>`).join('');
+      cats.map(c => `<a class="chip" href="#cat-${h(c.id)}">${h(tr(c, 'name'))}</a>`).join('');
     document.getElementById('chips').hidden = cats.length < 2;
   }
   document.getElementById('head').hidden = false;
@@ -220,22 +281,29 @@ function render(r){
 }
 
 (async function load(){
+  setLang(initialLang(), false);   // mostra "Caricamento..." nella lingua giusta
   const slug = new URLSearchParams(location.search).get('r');
   // tema salvato l'ultima volta: evita il lampo scuro/chiaro all'apertura
   let saved = null;
   try{ saved = localStorage.getItem('theme:' + slug); }catch{}
   applyTheme(saved);
-  if(!slug){ message('Link non valido', 'Apri il menu dal link della tessera o dal QR code.'); return; }
+  if(!slug){ message('bad'); return; }
 
-  const query = withTheme => db.from('restaurants')
-    .select('id,name,tagline,' + (withTheme ? 'theme,' : '') + 'categories(id,name,layout,sort_order,items(id,name,description,price,menu_price,allergens,image_url,available,sort_order))')
-    .eq('slug', slug).maybeSingle();
-  let { data, error } = await query(true);
-  if(error && /theme/i.test(error.message || '')) ({ data, error } = await query(false));  // colonna tema non ancora creata
-  if(error){ message('Menu non disponibile', 'Riprova tra qualche istante.'); return; }
-  if(!data){ message('Menu non trovato', 'Controlla il link e riprova.'); return; }
-  const t = applyTheme(data.theme);
-  try{ localStorage.setItem('theme:' + slug, t); }catch{}
+  const sel = (th, en) => 'id,name,tagline,' + (en ? 'tagline_en,' : '') + (th ? 'theme,' : '') +
+    'categories(id,name,' + (en ? 'name_en,' : '') + 'layout,sort_order,items(id,name,' +
+    (en ? 'name_en,description_en,allergens_en,' : '') +
+    'description,price,menu_price,allergens,image_url,available,sort_order))';
+  // se una colonna nuova non esiste ancora, riprova senza: il menu si vede comunque
+  let res;
+  for(const [th, en] of [[true, true], [true, false], [false, true], [false, false]]){
+    res = await db.from('restaurants').select(sel(th, en)).eq('slug', slug).maybeSingle();
+    if(!res.error || !/column|does not exist|schema cache/i.test(res.error.message || '')) break;
+  }
+  const { data, error } = res;
+  if(error){ message('err'); return; }
+  if(!data){ message('nf'); return; }
+  const th = applyTheme(data.theme);
+  try{ localStorage.setItem('theme:' + slug, th); }catch{}
   render(data);
 })();
 </script>

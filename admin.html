@@ -67,6 +67,8 @@
   .photo-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .item-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+  .en-block{margin-top:18px;border-top:1px dashed var(--btn-border)}
+  .en-title{margin-top:12px;font-size:14px;font-weight:700;color:var(--accent)}
   .check{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;min-height:46px}
   .check input{width:24px;height:24px;min-height:24px;margin:0;accent-color:var(--accent)}
   .foot-actions{display:flex;gap:8px}
@@ -201,6 +203,12 @@ function itemHtml(it, c, i, n){
       <label class="field">Prezzo menu (€)<input data-field="menu_price" inputmode="decimal" placeholder="vuoto = nessun menu" value="${it.menu_price == null ? '' : fmtInput(it.menu_price)}"></label>
     </div>
     <label class="field">Allergeni<input data-field="allergens" value="${h(it.allergens)}" placeholder="es. glutine, latte" maxlength="120"></label>
+    <div class="en-block">
+      <p class="en-title">Traduzione in inglese</p>
+      <label class="field">Nome del piatto<input data-field="name_en" value="${h(it.name_en)}" maxlength="80"></label>
+      <label class="field">Descrizione<textarea data-field="description_en" rows="3" maxlength="300">${h(it.description_en)}</textarea></label>
+      <label class="field">Allergeni<input data-field="allergens_en" value="${h(it.allergens_en)}" placeholder="es. gluten, milk" maxlength="120"></label>
+    </div>
     <div class="item-foot">
       <label class="check"><input type="checkbox" data-field="available" ${it.available ? 'checked' : ''}> Disponibile</label>
       <div class="foot-actions">
@@ -225,6 +233,7 @@ function catHtml(c, ci){
           <option value="list"${c.layout === 'list' ? ' selected' : ''}>Elenco semplice</option>
         </select></label>
     </div>
+    <label class="field">Nome della categoria in inglese<input data-cfield="name_en" value="${h(c.name_en)}" maxlength="60"></label>
     <div class="actions">
       <button class="btn sm" data-act="cat-up" aria-label="Sposta la categoria su" ${ci === 0 ? 'disabled' : ''}>▲</button>
       <button class="btn sm" data-act="cat-down" aria-label="Sposta la categoria giù" ${ci === state.cats.length - 1 ? 'disabled' : ''}>▼</button>
@@ -251,6 +260,7 @@ function renderEditor(){
       <h2>Dati del locale</h2>
       <label class="field">Nome<input data-rest="name" value="${h(r.name)}" maxlength="80"></label>
       <label class="field">Sottotitolo<input data-rest="tagline" value="${h(r.tagline)}" maxlength="120"></label>
+      <label class="field">Sottotitolo in inglese<input data-rest="tagline_en" value="${h(r.tagline_en)}" maxlength="120"></label>
       <label class="field">Tema del menu (colori e logo)
         <select data-rest="theme">
           <option value="dark"${(r.theme || 'dark') === 'dark' ? ' selected' : ''}>Scuro</option>

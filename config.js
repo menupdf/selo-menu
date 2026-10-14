@@ -8,5 +8,9 @@ window.CONFIG = {
   // Testi mostrati accanto ai due prezzi (solo piatto / menu)
   LABEL_SINGLE: "Singolo",
   LABEL_MENU: "Menu",
-  MENU_NOTE: "Menu con patatine e bibita"
+  MENU_NOTE: "Menu con patatine e bibita",
+  // Gli stessi testi in inglese
+  LABEL_SINGLE_EN: "Single",
+  LABEL_MENU_EN: "Meal",
+  MENU_NOTE_EN: "Meal with fries and a drink"
 };
